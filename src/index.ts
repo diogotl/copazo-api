@@ -1,6 +1,7 @@
 import { fastify } from "fastify";
 import { fastifyCors } from "@fastify/cors";
-import { env } from "./env.ts";
+import { env } from "./env";
+import { routes } from "./controllers/routes";
 
 const app = fastify();
 
@@ -8,9 +9,7 @@ app.register(fastifyCors, {
   origin: "*",
 });
 
-app.get("/", async (request, reply) => {
-  console.log(request.body);
-});
+app.register(routes);
 
 app.listen({ port: env.PORT }, (err, address) => {
   if (err) {
