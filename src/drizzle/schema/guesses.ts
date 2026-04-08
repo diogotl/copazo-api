@@ -1,9 +1,8 @@
 import { pgTable, text, timestamp, integer, unique } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 import { games } from "./games";
-import { participants } from "./pools";
-import { pools } from "./pools";
-import { users } from "./users";
+import { participants, pools } from "./pools";
+import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 export const guesses = pgTable(
   "guesses",
@@ -29,3 +28,6 @@ export const guesses = pgTable(
     unq: unique().on(t.participantId, t.gameId),
   }),
 );
+
+export type Guess = InferSelectModel<typeof guesses>;
+export type CreateGuessData = InferInsertModel<typeof guesses>;
