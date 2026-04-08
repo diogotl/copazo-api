@@ -1,10 +1,10 @@
 import { DrizzlePoolsRepository } from "@/repositories/drizzle/drizzle-pools-repository";
 import { DrizzleParticipantsRepository } from "@/repositories/drizzle/drizzle-participants-repository";
-import { CreatePoolUseCase } from "../create-pool";
+import { JoinPoolUseCase } from "../join-pool";
 
-export function makeCreatePoolUseCase() {
+export function makeJoinPoolUseCase() {
   const poolsRepository = new DrizzlePoolsRepository();
   const participantsRepository = new DrizzleParticipantsRepository();
 
-  return new CreatePoolUseCase(poolsRepository, participantsRepository);
+  return new JoinPoolUseCase(poolsRepository, participantsRepository);
 }

@@ -1,12 +1,8 @@
 import { eq } from "drizzle-orm";
 import type { PoolsRepository } from "../pools-repository";
 import { db } from "@/drizzle/client";
-import {
-  CreatePoolData,
-  participants,
-  Pool,
-  pools,
-} from "@/drizzle/schema/pools";
+import { participants, pools } from "@/drizzle/schema/pools";
+import type { CreatePoolData, Pool } from "@/drizzle/schema/pools";
 
 export class DrizzlePoolsRepository implements PoolsRepository {
   async create(data: CreatePoolData): Promise<Pool> {
@@ -21,10 +17,13 @@ export class DrizzlePoolsRepository implements PoolsRepository {
     return pool ?? null;
   }
 
-  async findManyByUserId(userId: string) {
-    return db.query.participants.findMany({
-      where: eq(participants.userId, userId),
-      with: { pool: true },
-    });
+  async findManyByUserId(userId: string): Promise<Pool[]> {
+    const result = await db
+      .select({ pool: pools })
+      .from(participants)
+      .innerJoin(pools, eq(participants.poolId, pools.id))
+      .where(eq(participants.userId, userId));
+
+    return result.map((r) => r.pool);
   }
 }

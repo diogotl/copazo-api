@@ -1,7 +1,7 @@
 import { pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 import { users } from "./users";
-import { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 export const pools = pgTable("pools", {
   id: text("id")
@@ -15,6 +15,9 @@ export const pools = pgTable("pools", {
 
 export type Pool = InferSelectModel<typeof pools>;
 export type CreatePoolData = InferInsertModel<typeof pools>;
+
+export type Participant = InferSelectModel<typeof participants>;
+export type CreateParticipantData = InferInsertModel<typeof participants>;
 
 export const participants = pgTable(
   "participants",
