@@ -3,27 +3,58 @@ import { z } from "zod";
 import { makeCreateGuessUseCase } from "@/use-cases/factories/make-create-guess-use-case";
 import { GameNotFoundError } from "@/use-cases/errors/game-not-found-error";
 import { ParticipantNotFoundError } from "@/use-cases/errors/participant-not-found-error";
-import { GuessAlreadyExistsError } from "@/use-cases/errors/guess-already-exists-error";
 import { GameAlreadyStartedError } from "@/use-cases/errors/game-already-started-error";
 
-export async function createGuess(request: FastifyRequest, reply: FastifyReply) {
-  const paramsSchema = z.object({
-    poolId: z.string(),
-    gameId: z.string(),
-  });
-
-  const bodySchema = z.object({
-    firstTeamScore: z.number().int().min(0),
-    secondTeamScore: z.number().int().min(0),
-  });
-
-  const { poolId, gameId } = paramsSchema.parse(request.params);
-  const { firstTeamScore, secondTeamScore } = bodySchema.parse(request.body);
-
-  // TODO: substituir pelo userId do JWT autenticado - request.user.sub
-  const userId = "placeholder-user-id";
-
+export async function createGuess(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
   try {
+    // Validate URL params
+    const paramsSchema = z.object({
+      poolId: z.string().min(1),
+      gameId: z.string().min(1),
+    });
+
+    const paramsResult = paramsSchema.safeParse(request.params);
+    if (!paramsResult.success) {
+      return reply.status(400).send({
+        error: "Invalid parameters",
+        details: paramsResult.error.issues,
+      });
+    }
+
+    // Check if body exists
+    if (!request.body || typeof request.body !== "object") {
+      return reply.status(400).send({
+        error: "Request body is required and must be JSON",
+      });
+    }
+
+    // Validate body
+    const bodySchema = z.object({
+      firstTeamScore: z.number().int().min(0).max(50),
+      secondTeamScore: z.number().int().min(0).max(50),
+    });
+
+    const bodyResult = bodySchema.safeParse(request.body);
+    if (!bodyResult.success) {
+      return reply.status(400).send({
+        error: "Invalid request body",
+        details: bodyResult.error.issues,
+      });
+    }
+
+    const { poolId, gameId } = paramsResult.data;
+    const { firstTeamScore, secondTeamScore } = bodyResult.data;
+
+    // TODO: Replace with real user ID from JWT: request.user.sub
+    const userId = "placeholder-user-id";
+
+    console.log(
+      `Creating/updating guess for user ${userId} in pool ${poolId} for game ${gameId}`,
+    );
+
     const createGuessUseCase = makeCreateGuessUseCase();
 
     const { guess } = await createGuessUseCase.execute({
@@ -34,24 +65,47 @@ export async function createGuess(request: FastifyRequest, reply: FastifyReply) 
       secondTeamScore,
     });
 
-    return reply.status(201).send({ guess });
+    console.log(`Guess saved successfully: ${guess.id}`);
+
+    return reply.status(201).send({
+      success: true,
+      guess: {
+        id: guess.id,
+        firstTeamScore: guess.firstTeamScore,
+        secondTeamScore: guess.secondTeamScore,
+        gameId: guess.gameId,
+        poolId: guess.poolId,
+        createdAt: guess.createdAt,
+      },
+    });
   } catch (error) {
+    console.error("Error in createGuess:", error);
+
     if (error instanceof GameNotFoundError) {
-      return reply.status(404).send({ message: error.message });
+      return reply.status(404).send({
+        error: "Game not found",
+        message: error.message,
+      });
     }
 
     if (error instanceof ParticipantNotFoundError) {
-      return reply.status(403).send({ message: error.message });
-    }
-
-    if (error instanceof GuessAlreadyExistsError) {
-      return reply.status(409).send({ message: error.message });
+      return reply.status(403).send({
+        error: "Access denied",
+        message: "You must be a participant in this pool to make guesses",
+      });
     }
 
     if (error instanceof GameAlreadyStartedError) {
-      return reply.status(400).send({ message: error.message });
+      return reply.status(400).send({
+        error: "Game already started",
+        message: "Cannot create or update guess after game has started",
+      });
     }
 
-    throw error;
+    // Generic server error
+    return reply.status(500).send({
+      error: "Internal server error",
+      message: "Failed to save guess",
+    });
   }
 }
