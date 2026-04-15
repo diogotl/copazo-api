@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 import { teams } from "./teams";
+import { stadiums } from "./stadiums";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 export const games = pgTable("games", {
@@ -16,6 +17,7 @@ export const games = pgTable("games", {
     .references(() => teams.id),
   phase: text("phase").notNull(),
   group: text("group"),
+  stadiumId: text("stadium_id").references(() => stadiums.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
