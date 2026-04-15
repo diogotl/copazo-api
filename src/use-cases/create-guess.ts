@@ -3,7 +3,6 @@ import type { ParticipantsRepository } from "@/repositories/participants-reposit
 import type { GamesRepository } from "@/repositories/games-repository";
 import { GameNotFoundError } from "./errors/game-not-found-error";
 import { ParticipantNotFoundError } from "./errors/participant-not-found-error";
-import { GuessAlreadyExistsError } from "./errors/guess-already-exists-error";
 import { GameAlreadyStartedError } from "./errors/game-already-started-error";
 
 interface CreateGuessUseCaseRequest {
@@ -33,22 +32,35 @@ export class CreateGuessUseCase {
 
     if (game.date < new Date()) throw new GameAlreadyStartedError();
 
-    const participant = await this.participantsRepository.findByUserAndPool(userId, poolId);
+    const participant = await this.participantsRepository.findByUserAndPool(
+      userId,
+      poolId,
+    );
     if (!participant) throw new ParticipantNotFoundError();
 
     const existingGuess = await this.guessesRepository.findByParticipantAndGame(
       participant.id,
       gameId,
     );
-    if (existingGuess) throw new GuessAlreadyExistsError();
 
-    const guess = await this.guessesRepository.create({
-      gameId,
-      participantId: participant.id,
-      poolId,
-      firstTeamScore,
-      secondTeamScore,
-    });
+    let guess;
+
+    if (existingGuess) {
+      // Update existing guess
+      guess = await this.guessesRepository.update(existingGuess.id, {
+        firstTeamScore,
+        secondTeamScore,
+      });
+    } else {
+      // Create new guess
+      guess = await this.guessesRepository.create({
+        gameId,
+        participantId: participant.id,
+        poolId,
+        firstTeamScore,
+        secondTeamScore,
+      });
+    }
 
     return { guess };
   }
