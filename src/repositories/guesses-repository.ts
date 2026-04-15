@@ -15,4 +15,10 @@ export interface GuessesRepository {
     participantId: string,
     gameId: string,
   ): Promise<Guess | null>;
+  findByUserAndPool(userId: string, poolId: string): Promise<Guess[]>;
+  findByUserAndGame(
+    userId: string,
+    gameId: string,
+    poolId: string,
+  ): Promise<Guess | null>;
 }

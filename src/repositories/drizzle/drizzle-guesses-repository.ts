@@ -1,5 +1,6 @@
 import { db } from "@/drizzle/client";
 import { guesses } from "@/drizzle/schema/guesses";
+import { participants } from "@/drizzle/schema/pools";
 import { and, eq } from "drizzle-orm";
 import type {
   GuessesRepository,
@@ -30,5 +31,37 @@ export class DrizzleGuessesRepository implements GuessesRepository {
       ),
     });
     return guess ?? null;
+  }
+
+  async findByUserAndPool(userId: string, poolId: string) {
+    const result = await db
+      .select({
+        guess: guesses,
+        participant: participants,
+      })
+      .from(guesses)
+      .innerJoin(participants, eq(guesses.participantId, participants.id))
+      .where(and(eq(participants.userId, userId), eq(guesses.poolId, poolId)));
+
+    return result.map((row) => row.guess);
+  }
+
+  async findByUserAndGame(userId: string, gameId: string, poolId: string) {
+    const result = await db
+      .select({
+        guess: guesses,
+      })
+      .from(guesses)
+      .innerJoin(participants, eq(guesses.participantId, participants.id))
+      .where(
+        and(
+          eq(participants.userId, userId),
+          eq(guesses.gameId, gameId),
+          eq(guesses.poolId, poolId),
+        ),
+      )
+      .limit(1);
+
+    return result[0]?.guess || null;
   }
 }

@@ -10,6 +10,13 @@ export class DrizzlePoolsRepository implements PoolsRepository {
     return pool;
   }
 
+  async findById(id: string): Promise<Pool | null> {
+    const pool = await db.query.pools.findFirst({
+      where: eq(pools.id, id),
+    });
+    return pool ?? null;
+  }
+
   async findByCode(code: string): Promise<Pool | null> {
     const pool = await db.query.pools.findFirst({
       where: eq(pools.code, code),
