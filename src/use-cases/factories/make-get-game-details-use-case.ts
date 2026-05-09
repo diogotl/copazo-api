@@ -1,7 +1,7 @@
-import { SimpleCachedGamesRepository } from "@/repositories/drizzle/simple-cached-games-repository";
+import { DrizzleGamesRepository } from "@/repositories/drizzle/drizzle-games-repository";
 import { GetGameDetailsUseCase } from "../get-game-details";
 
 export function makeGetGameDetailsUseCase() {
-  const gamesRepository = new SimpleCachedGamesRepository();
+  const gamesRepository = new DrizzleGamesRepository();
   return new GetGameDetailsUseCase(gamesRepository);
 }
