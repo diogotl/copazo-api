@@ -6,11 +6,15 @@ export type CreateGuessData = Omit<
   InferInsertModel<typeof guesses>,
   "id" | "createdAt" | "points"
 >;
-export type UpdateGuessData = Pick<Guess, "firstTeamScore" | "secondTeamScore">;
+export type UpdateGuessData = Pick<
+  Guess,
+  "firstTeamScore" | "secondTeamScore" | "isJoker"
+>;
 
 export interface GuessesRepository {
   create(data: CreateGuessData): Promise<Guess>;
   update(guessId: string, data: UpdateGuessData): Promise<Guess>;
+  updatePoints(guessId: string, points: number): Promise<Guess>;
   findByParticipantAndGame(
     participantId: string,
     gameId: string,
@@ -21,4 +25,12 @@ export interface GuessesRepository {
     gameId: string,
     poolId: string,
   ): Promise<Guess | null>;
+  findByGameId(gameId: string): Promise<Guess[]>;
+  countJokersInTournamentRound(
+    userId: string,
+    poolId: string,
+    gamePhase: string,
+    gameRound: number,
+    excludeGameId?: string,
+  ): Promise<number>;
 }
