@@ -1,4 +1,11 @@
-import { pgTable, text, timestamp, integer, unique } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  integer,
+  unique,
+  boolean,
+} from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 import { games } from "./games";
 import { participants, pools } from "./pools";
@@ -13,6 +20,7 @@ export const guesses = pgTable(
     firstTeamScore: integer("first_team_score").notNull(),
     secondTeamScore: integer("second_team_score").notNull(),
     points: integer("points"),
+    isJoker: boolean("is_joker").default(false),
     gameId: text("game_id")
       .notNull()
       .references(() => games.id),

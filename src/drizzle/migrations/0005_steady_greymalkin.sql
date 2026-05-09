@@ -1,0 +1,1 @@
+ALTER TYPE "public"."game_phase" ADD VALUE 'round_of_32' BEFORE 'round_of_16';
