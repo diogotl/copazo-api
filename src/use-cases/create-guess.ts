@@ -4,6 +4,8 @@ import type { GamesRepository } from "@/repositories/games-repository";
 import { GameNotFoundError } from "./errors/game-not-found-error";
 import { ParticipantNotFoundError } from "./errors/participant-not-found-error";
 import { GameAlreadyStartedError } from "./errors/game-already-started-error";
+import { JokerAlreadyUsedError } from "./errors/joker-already-used-error";
+import { canUseJoker } from "@/libs/points-calculation";
 
 interface CreateGuessUseCaseRequest {
   userId: string;
@@ -11,6 +13,7 @@ interface CreateGuessUseCaseRequest {
   gameId: string;
   firstTeamScore: number;
   secondTeamScore: number;
+  isJoker?: boolean;
 }
 
 export class CreateGuessUseCase {
@@ -26,6 +29,7 @@ export class CreateGuessUseCase {
     gameId,
     firstTeamScore,
     secondTeamScore,
+    isJoker = false,
   }: CreateGuessUseCaseRequest) {
     const game = await this.gamesRepository.findById(gameId);
     if (!game) throw new GameNotFoundError();
@@ -37,6 +41,22 @@ export class CreateGuessUseCase {
       poolId,
     );
     if (!participant) throw new ParticipantNotFoundError();
+
+    // Validate joker usage if trying to use joker
+    if (isJoker) {
+      const existingJokersInRound =
+        await this.guessesRepository.countJokersInTournamentRound(
+          userId,
+          poolId,
+          game.phase,
+          game.round,
+          gameId, // exclude current game if updating
+        );
+
+      if (!canUseJoker(existingJokersInRound, isJoker)) {
+        throw new JokerAlreadyUsedError();
+      }
+    }
 
     const existingGuess = await this.guessesRepository.findByParticipantAndGame(
       participant.id,
@@ -50,6 +70,7 @@ export class CreateGuessUseCase {
       guess = await this.guessesRepository.update(existingGuess.id, {
         firstTeamScore,
         secondTeamScore,
+        isJoker,
       });
     } else {
       // Create new guess
@@ -59,6 +80,7 @@ export class CreateGuessUseCase {
         poolId,
         firstTeamScore,
         secondTeamScore,
+        isJoker,
       });
     }
 
