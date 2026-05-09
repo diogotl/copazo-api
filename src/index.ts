@@ -1,5 +1,9 @@
+import { ZodError } from "zod";
 import { fastify } from "fastify";
 import { fastifyCors } from "@fastify/cors";
+import fastifyJwt from "@fastify/jwt";
+import fastifyCookie from "@fastify/cookie";
+import fastifyRateLimit from "@fastify/rate-limit";
 import { env } from "./env";
 import { routes } from "./controllers/routes";
 
@@ -11,13 +15,14 @@ const app = fastify({
 app.addContentTypeParser(
   "application/json",
   { parseAs: "string" },
-  function (req, body, done) {
+  (_req, body, done) => {
     try {
       const json = JSON.parse(body as string);
       done(null, json);
     } catch (err) {
-      err.statusCode = 400;
-      done(err, undefined);
+      const error = err as Error & { statusCode?: number };
+      error.statusCode = 400;
+      done(error, undefined);
     }
   },
 );
@@ -26,8 +31,34 @@ app.register(fastifyCors, {
   origin: "*",
 });
 
+app.register(fastifyCookie);
+
+// Rate limiting — global: false means only routes with an explicit
+// config.rateLimit option are limited (i.e. the auth endpoints).
+app.register(fastifyRateLimit, {
+  global: false,
+});
+
+app.register(fastifyJwt, {
+  secret: env.JWT_SECRET,
+  cookie: {
+    cookieName: "refreshToken",
+    signed: false,
+  },
+  sign: {
+    expiresIn: "15m",
+  },
+});
+
 // Global error handler
 app.setErrorHandler((error, _request, reply) => {
+  if (error instanceof ZodError) {
+    return reply.status(400).send({
+      message: "Validation error.",
+      issues: error.flatten().fieldErrors,
+    });
+  }
+
   console.error("API Error:", error);
 
   return reply.status(500).send({
