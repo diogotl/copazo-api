@@ -1,9 +1,10 @@
-import type { FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { makeCreateGuessUseCase } from "@/use-cases/factories/make-create-guess-use-case";
 import { GameNotFoundError } from "@/use-cases/errors/game-not-found-error";
-import { ParticipantNotFoundError } from "@/use-cases/errors/participant-not-found-error";
 import { GameAlreadyStartedError } from "@/use-cases/errors/game-already-started-error";
+import { ParticipantNotFoundError } from "@/use-cases/errors/participant-not-found-error";
+import { JokerAlreadyUsedError } from "@/use-cases/errors/joker-already-used-error";
 
 export async function createGuess(
   request: FastifyRequest,
@@ -35,6 +36,7 @@ export async function createGuess(
     const bodySchema = z.object({
       firstTeamScore: z.number().int().min(0).max(50),
       secondTeamScore: z.number().int().min(0).max(50),
+      isJoker: z.boolean().optional().default(false),
     });
 
     const bodyResult = bodySchema.safeParse(request.body);
@@ -46,7 +48,7 @@ export async function createGuess(
     }
 
     const { poolId, gameId } = paramsResult.data;
-    const { firstTeamScore, secondTeamScore } = bodyResult.data;
+    const { firstTeamScore, secondTeamScore, isJoker } = bodyResult.data;
 
     // TODO: Replace with real user ID from JWT: request.user.sub
     const userId = "placeholder-user-id";
@@ -63,6 +65,7 @@ export async function createGuess(
       gameId,
       firstTeamScore,
       secondTeamScore,
+      isJoker,
     });
 
     console.log(`Guess saved successfully: ${guess.id}`);
@@ -73,6 +76,7 @@ export async function createGuess(
         id: guess.id,
         firstTeamScore: guess.firstTeamScore,
         secondTeamScore: guess.secondTeamScore,
+        isJoker: guess.isJoker,
         gameId: guess.gameId,
         poolId: guess.poolId,
         createdAt: guess.createdAt,
@@ -99,6 +103,13 @@ export async function createGuess(
       return reply.status(400).send({
         error: "Game already started",
         message: "Cannot create or update guess after game has started",
+      });
+    }
+
+    if (error instanceof JokerAlreadyUsedError) {
+      return reply.status(400).send({
+        error: "Joker already used",
+        message: error.message,
       });
     }
 
